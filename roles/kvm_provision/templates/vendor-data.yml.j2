@@ -1,5 +1,6 @@
 #cloud-config
 
+resize_rootfs: True
 hostname: {{ vm_name }}
 
 users:
@@ -16,6 +17,13 @@ chpasswd:
   expire: false
 
 
+package_upgrade: true
+packages:
+ - qemu-guest-agent
+
 runcmd:
   - mkdir /home/{{ vm_user }}
   - chown {{ vm_user }}:{{ vm_user }} /home/{{ vm_user }}
+  - [ systemctl, daemon-reload ]
+  - [ systemctl, enable, qemu-guest-agent ]
+  - [ systemctl, start, qemu-guest-agent ]

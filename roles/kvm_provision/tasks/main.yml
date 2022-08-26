@@ -34,6 +34,7 @@
       shell: |
         qemu-img create -f qcow2 {{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 {{ vm_disk_gb }}G
         dd if=/tmp/{{ base_image_name }} of={{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 conv=fsync
+        qemu-img resize {{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 {{ vm_disk_gb }}G
       register: copy_results
       when: "vm_name not in existing_vms.list_vms"
 

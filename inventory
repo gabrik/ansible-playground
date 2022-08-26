@@ -1,2 +1,2 @@
-[kvm]
+[hypervisors]
 192.168.86.23 ansible_user=ato

@@ -1,5 +1,5 @@
 - name: Deploy VM from cloud image
-  hosts: kvm
+  hosts: "{{ host | default('hypervisors') }}"
   become: true
   vars:
     pool_dir: "/var/lib/libvirt/images"
@@ -12,7 +12,9 @@
   tasks:
    - name: KVM provision role
      include_role:
-       name: kvm_provision
+        name: kvm_provision
+     tags:
+        - always
      vars:
         vm_name: "{{ vm }}"
         vm_vcpus: "{{ vcpus }}"

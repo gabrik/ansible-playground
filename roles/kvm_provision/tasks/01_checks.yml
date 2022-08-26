@@ -1,0 +1,22 @@
+---
+
+- name: Checks if Requirements are in place
+  tags:
+    - create
+    - delete
+  block:
+    - name: Ensure requirements in place
+      package:
+        name:
+          - libguestfs-tools
+          - python3-libvirt
+        state: present
+      become: yes
+
+
+
+    - name: Get VMs list
+      community.libvirt.virt:
+        command: list_vms
+      register: existing_vms
+      changed_when: no

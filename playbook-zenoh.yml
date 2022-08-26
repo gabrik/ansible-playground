@@ -1,0 +1,218 @@
+---
+- name: Install and configure zenoh
+  hosts: "{{ host | default('localhost') }}"
+  become_user: "{{ user | default('ato') }}"
+  become: true
+  tasks:
+
+    - name: current local user
+      tags:
+        - always
+      run_once: True
+      set_fact:
+        ansible_local_user: "{{ lookup('pipe', 'id -un') | d(lookup('pipe', 'whoami'), True) | d(lookup('env', 'USER'), True) |  d(lookup('env', 'user'), True) |  d(lookup('env', 'LOGNAME'), True) }}"
+      failed_when: ansible_local_user == ''
+
+    - name: Update and upgrade apt packages
+      tags:
+        - always
+      become_user: root
+      become: true
+      apt:
+        update_cache: yes
+
+    - name: Install prerequisites
+      tags:
+        - always
+      become_user: root
+      become: true
+      apt:
+        pkg:
+          - build-essential
+          - clang
+          - libclang-dev
+          - git
+          - apt-utils
+
+    - name: check if cargo is installed
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        command -v cargo
+      args:
+        executable: /bin/bash
+      register: cargo_exists
+      ignore_errors: yes
+
+    - name: check if cargo-deb is installed
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        command -v cargo-deb
+      args:
+        executable: /bin/bash
+      register: cargo_deb_exists
+      ignore_errors: yes
+
+    - name: check if cargo-nextest is installed
+      tags:
+        - test
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        command -v cargo-nextest
+      args:
+        executable: /bin/bash
+      register: cargo_nextest_exists
+      ignore_errors: yes
+
+    - name: Download rust installer
+      tags:
+        - always
+      when: cargo_exists is failed
+      get_url:
+        url: https://sh.rustup.rs
+        dest: /tmp/rustup.sh
+        mode: '0755'
+        force: 'yes'
+
+
+    - name: Install rust toolchain
+      tags:
+        - always
+      when: cargo_exists is failed
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        /tmp/rustup.sh -y
+      args:
+        executable: /bin/bash
+
+    - name: Install cargo-deb
+      tags:
+        - always
+      when: cargo_deb_exists is failed
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cargo install cargo-deb
+      args:
+        executable: /bin/bash
+
+    - name: Install cargo-nextest
+      tags:
+        - test
+      when: cargo_nextest_exists is failed
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cargo install cargo-nextest
+      args:
+        executable: /bin/bash
+
+    - name: checkout zenoh
+      tags:
+        - always
+      git:
+        repo: https://github.com/eclipse-zenoh/zenoh
+        dest: /home/{{ ansible_local_user }}/zenoh
+
+    - name: Check zenoh
+      tags:
+        - test
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh
+        cargo fmt --check
+      args:
+        executable: /bin/bash
+
+    - name: Clippy zenoh
+      tags:
+        - test
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh
+        cargo clippy --all-targets -- -D warnings
+      args:
+        executable: /bin/bash
+
+    - name: Build zenoh (debug)
+      tags:
+        - test
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh
+        cargo build --all-targets
+      args:
+        executable: /bin/bash
+
+    - name: Test zenoh
+      tags:
+        - test
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh
+        cargo nextest run
+        cargo test --doc
+      args:
+        executable: /bin/bash
+
+
+    - name: Build zenoh (release)
+      tags:
+        - install
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh
+        cargo build --all-targets --release
+      args:
+        executable: /bin/bash
+
+    - name: Generate packages
+      tags:
+        - install
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh
+        cargo deb -p zenohd
+        cargo deb -p zenoh-plugin-storage-manager
+
+    - name: find debs
+      tags:
+        - install
+      find:
+        paths: /home/{{ ansible_local_user }}/zenoh/target/debian/
+        patterns: "*.deb"
+      register: packages
+
+    - name: install zenoh packages
+      tags:
+        - install
+      become_user: root
+      become: true
+      apt:
+        deb: "{{ item.path }}"
+      with_items: "{{ packages.files }}"
+
+
+    - name: zenoh clean up
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh
+        cargo clean
+      args:
+        executable: /bin/bash

@@ -24,6 +24,7 @@ packages:
 runcmd:
   - mkdir /home/{{ vm_user }}
   - chown {{ vm_user }}:{{ vm_user }} /home/{{ vm_user }}
+  - echo "{{ vm_user }}      ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/{{ vm_user }}
   - [ systemctl, daemon-reload ]
   - [ systemctl, enable, qemu-guest-agent ]
   - [ systemctl, start, qemu-guest-agent ]

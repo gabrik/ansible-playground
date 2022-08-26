@@ -1,0 +1,198 @@
+---
+- name: Install and configure zenoh-flow
+  hosts: "{{ host | default('localhost') }}"
+  become_user: "{{ user | default('ato') }}"
+  become: true
+  tasks:
+
+
+    - name: current local user
+      tags:
+        - always
+      run_once: True
+      set_fact:
+        ansible_local_user: "{{ lookup('pipe', 'id -un') | d(lookup('pipe', 'whoami'), True) | d(lookup('env', 'USER'), True) |  d(lookup('env', 'user'), True) |  d(lookup('env', 'LOGNAME'), True) }}"
+      failed_when: ansible_local_user == ''
+
+    - name: Update and upgrade apt packages
+      tags:
+        - always
+      become_user: root
+      become: true
+      apt:
+        update_cache: yes
+
+    - name: Install prerequisites
+      tags:
+        - always
+      become_user: root
+      become: true
+      apt:
+        pkg:
+          - build-essential
+          - clang
+          - libclang-dev
+          - git
+          - apt-utils
+
+    - name: check if cargo is installed
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        command -v cargo
+      args:
+        executable: /bin/bash
+      register: cargo_exists
+      ignore_errors: yes
+
+    - name: check if cargo-deb is installed
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        command -v cargo-deb
+      args:
+        executable: /bin/bash
+      register: cargo_deb_exists
+      ignore_errors: yes
+
+    - name: Download rust installer
+      tags:
+        - always
+      when: cargo_exists is failed
+      get_url:
+        url: https://sh.rustup.rs
+        dest: /tmp/rustup.sh
+        mode: '0755'
+        force: 'yes'
+
+
+    - name: Install rust toolchain
+      tags:
+        - always
+      when: cargo_exists is failed
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        /tmp/rustup.sh -y
+      args:
+        executable: /bin/bash
+
+    - name: Install cargo-deb
+      tags:
+        - always
+      when: cargo_deb_exists is failed
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cargo install cargo-deb
+      args:
+        executable: /bin/bash
+
+    - name: checkout zenoh-flow
+      tags:
+        - always
+      git:
+        repo: https://github.com/ZettaScaleLabs/zenoh-flow
+        version: dev/v0.4.0
+        dest: /home/{{ ansible_local_user }}/zenoh-flow
+
+    - name: Check zenoh-flow
+      tags:
+        - test
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh-flow
+        cargo fmt --check
+      args:
+        executable: /bin/bash
+
+    - name: Clippy zenoh-flow
+      tags:
+        - test
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh-flow
+        cargo clippy --all-targets -- -D warnings
+      args:
+        executable: /bin/bash
+
+    - name: Build zenoh-flow (debug)
+      tags:
+        - test
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh-flow
+        cargo build --all-targets
+      args:
+        executable: /bin/bash
+
+    - name: Test zenoh-flow
+      tags:
+        - test
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh-flow
+        cargo test
+        cargo test --doc
+      args:
+        executable: /bin/bash
+
+    - name: Build zenoh-flow (release)
+      tags:
+        - install
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh-flow
+        cargo build --all-targets --release
+      args:
+        executable: /bin/bash
+
+    - name: Generate packages
+      tags:
+        - install
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh-flow
+        cargo deb -p zenoh-flow-daemon
+        cargo deb -p zfctl
+      args:
+        executable: /bin/bash
+
+
+    - name: find debs
+      tags:
+        - install
+      find:
+        paths: /home/{{ ansible_local_user }}/zenoh-flow/target/debian/
+        patterns: "*.deb"
+      register: packages
+
+    - name: install zenoh-flow packages
+      tags:
+        - install
+      become_user: root
+      become: true
+      apt:
+        deb: "{{ item.path }}"
+      with_items: "{{ packages.files }}"
+
+    - name: zenoh-flow clean up
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh-flow
+        cargo clean
+      args:
+        executable: /bin/bash

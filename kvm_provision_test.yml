@@ -1,0 +1,22 @@
+- name: Deploy VM from cloud image
+  hosts: kvm
+  become: true
+  vars:
+    pool_dir: "/var/lib/libvirt/images"
+    vm: ubu22-test
+    vcpus: 2
+    ram_mb: 2048
+    disk_gb: 10
+    cleanup: no
+    net: default
+  tasks:
+   - name: KVM provision role
+     include_role:
+       name: kvm_provision
+     vars:
+        vm_name: "{{ vm }}"
+        vm_vcpus: "{{ vcpus }}"
+        vm_ram_mb: "{{ ram_mb }}"
+        vm_net: "{{ net }}"
+        vm_disk_gb: "{{ disk_gb }}"
+        cleanup_tmp: "{{ cleanup }}"

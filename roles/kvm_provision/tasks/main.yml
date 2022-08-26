@@ -1,0 +1,87 @@
+---
+# tasks file for kvm_provision
+
+
+- name: Ensure requirements in place
+  package:
+    name:
+      - libguestfs-tools
+      - python3-libvirt
+    state: present
+  become: yes
+
+
+- name: Get VMs list
+  community.libvirt.virt:
+    command: list_vms
+  register: existing_vms
+  changed_when: no
+
+- name: Copy the disk configuration script
+  copy:
+    content: "{{ lookup('file', 'create-config-drive.sh') }}"
+    dest: /tmp/create-config-drive.sh
+    mode: 0750
+
+- name: Create VM if not exists
+  block:
+    - name: Download base image
+      get_url:
+        url: "{{ base_image_url}}"
+        dest: "/tmp/{{ base_image_name }}"
+
+    - name: Copy base image to libvirt directory
+      shell: |
+        qemu-img create -f qcow2 {{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 {{ vm_disk_gb }}G
+        dd if=/tmp/{{ base_image_name }} of={{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 conv=fsync
+      register: copy_results
+      when: "vm_name not in existing_vms.list_vms"
+
+    - name: Copy the vendor configuration
+      copy:
+        content: "{{ lookup('template', 'vendor-data.yml.j2') }}"
+        dest: /tmp/vendor-data-{{ vm_name }}.yml
+        mode: 0660
+      when: "vm_name not in existing_vms.list_vms"
+
+    - name : Configure the image (cloud-init)
+      command: |
+        /tmp/create-config-drive.sh \
+        --ssh-key "{{ lookup('file', 'id_rsa.pub') }}" \
+        --vendor-data /tmp/vendor-data-{{ vm_name }}.yml \
+        {{ libvirt_pool_dir }}/{{ vm_name }}.iso
+      when: copy_results is changed
+
+    # - name: Configure the image
+    #   command: |
+    #     virt-customize -a {{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 \
+    #     --hostname {{ vm_name }} \
+    #     --root-password password:{{ vm_root_pass }} \
+    #     --ssh-inject 'root:string:{{ lookup('file', 'id_rsa.pub') }}'
+    #   when: copy_results is changed
+
+    - name: Define VM
+      community.libvirt.virt:
+        command: define
+        xml: "{{ lookup('template', 'vm-template.xml.j2') }}"
+      when: "vm_name not in existing_vms.list_vms"
+
+    - name: Ensure VM is started
+      community.libvirt.virt:
+        name: "{{ vm_name }}"
+        state: running
+      register: vm_start_result
+      until: "vm_start_result is success"
+      retries: 15
+      delay: 2
+
+    - name: Ensure vendor file is deleted
+      file:
+        path: "/tmp/vendor-data-{{ vm_name }}.yml"
+        state: absent
+
+    - name: Ensure temporary file is deleted
+      file:
+        path: "/tmp/{{ base_image_name }}"
+        state: absent
+      when: cleanup_tmp | bool

@@ -1,0 +1,21 @@
+#cloud-config
+
+hostname: {{ vm_name }}
+
+users:
+  - default
+  - name: {{ vm_user }}
+    primary_group: {{ vm_user }}
+    groups: sudo
+    home: /home/{{ vm_user }}
+    shell: /bin/bash
+chpasswd:
+  list: |
+    {{ vm_user }}:{{ vm_user_pass }}
+    root:{{ vm_root_pass }}
+  expire: false
+
+
+runcmd:
+  - mkdir /home/{{ vm_user }}
+  - chown {{ vm_user }}:{{ vm_user }} /home/{{ vm_user }}

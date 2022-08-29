@@ -14,8 +14,8 @@ ansible-galaxy collection install community.general
 
 ## Roles
 
-- kvm_provison => this roles allows to spawn (and destroy) VMs and virtual networks on libvirt
-
+- kvm_provison: this roles allows to spawn (and destroy) VMs and virtual networks on libvirt
+- lxd_provison: this roles allows to spawn (and destroy) containers with LXD
 
 ## Playbooks
 

@@ -3,6 +3,15 @@
 This repo contains some playbooks and roles that I'm using to learn and experiment
 with Ansible.
 
+
+## Prerequisites
+
+```
+pip3 install libvirt-python lxml
+ansible-galaxy collection install community.libvirt
+ansible-galaxy collection install community.general
+```
+
 ## Roles
 
 - kvm_provison => this roles allows to spawn (and destroy) VMs and virtual networks on libvirt
@@ -42,6 +51,20 @@ ansible-playbook -i inventory manage-vm.yml -e disk_gb=10 -e vcpus=4 -e ram_mb=8
 Deleting a VM:
 ```
 ansible-playbook -i inventory manage-vm.yml vm=myvm  --tags delete
+```
+
+### manage-container.yml
+
+This playbook allows to create (and delete) a VM on LXD
+
+Creating a Container example:
+```
+ansible-playbook -e host=localhost  manage-container.yml -e disk_gb=5 -e vcpus=16 -e ram_mb=8192 -e name=test --tags create
+```
+
+Deleting a Container:
+```
+ansible-playbook -e host=localhost  manage-container.yml -e name=test --tags delete
 ```
 
 

@@ -1,0 +1,31 @@
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+
+---
+# defaults file for lxd_provision
+base_image_alias: ubuntu/jammy
+images_server: https://images.linuxcontainers.org
+image_protocol: simplestreams
+container_name: ubu22-dev
+container_vcpus: 2
+container_vram_mb: 2048
+container_disk_gb: 10
+container_nets:
+  - lxdbr0
+
+# defaults for lxd network provision
+net_name: dev
+net_gw_addr: 192.168.10.1
+net_mask: 255.255.255.0
+net_dhcp_start: 192.168.10.2
+net_dhcp_end: 192.168.10.254

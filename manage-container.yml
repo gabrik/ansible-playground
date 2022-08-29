@@ -1,0 +1,44 @@
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+
+
+
+
+- name: Deploy container in lxd
+  hosts: "{{ host | default('hypervisors') }}"
+  become: true
+  vars:
+      image: ubuntu/jammy
+      image_server: https://images.linuxcontainers.org
+      protocol: simplestreams
+      name: ubu22-dev
+      vcpus: 2
+      vram_mb: 2048
+      disk_gb: 10
+      nets:
+      - lxdbr0
+  tasks:
+   - name: LXD provision role
+     include_role:
+        name: lxd_provision
+     tags:
+        - always
+     vars:
+         base_image_alias: "{{ image }}"
+         images_server: "{{ image_server }}"
+         image_protocol: "{{ protocol }}"
+         container_name: "{{ name }}"
+         container_vcpus: "{{ vcpus }}"
+         container_vram_mb: "{{ vram_mb }}"
+         container_disk_gb: "{{ disk_gb }}"
+         container_nets: "{{ nets }}"

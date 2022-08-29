@@ -1,0 +1,41 @@
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+
+
+
+---
+# tasks file for kvm_provision
+
+
+- include_tasks: 01_checks.yml
+  tags:
+    - create
+    - delete
+    - net_create
+    - net_delete
+
+- include_tasks: 02_create.yml
+  tags:
+    - create
+
+- include_tasks: 03_delete.yml
+  tags:
+    - delete
+
+# - include_tasks: 04_net_create.yml
+#   tags:
+#     - net_create
+
+# - include_tasks: 05_net_delete.yml
+#   tags:
+#     - net_delete

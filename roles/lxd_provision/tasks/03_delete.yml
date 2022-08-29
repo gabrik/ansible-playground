@@ -1,0 +1,37 @@
+
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+
+---
+
+- name: Delete container if exists
+  # when: "vm_name in existing_vms.list_vms"
+  tags:
+    - delete
+  block:
+
+    - name: Stop the container
+      community.general.lxd_container:
+        name: "{{ container_name }}"
+        state: stopped
+
+
+    - name: Delete the container
+      community.general.lxd_container:
+        name: "{{ container_name }}"
+        state: absent
+
+    - name: Delete the profile
+      community.general.lxd_profile:
+        name: "{{ container_name }}-profile"
+        state: absent

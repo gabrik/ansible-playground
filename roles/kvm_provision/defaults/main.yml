@@ -1,3 +1,18 @@
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+
+
+
 ---
 # defaults file for kvm_provision
 base_image_name: jammy-server-cloudimg-amd64.img
@@ -8,7 +23,8 @@ vm_name: ubu22-dev
 vm_vcpus: 2
 vm_ram_mb: 2048
 vm_disk_gb: 10
-vm_net: default
+vm_nets:
+  - default
 vm_root_pass: ato
 vm_user: ato
 vm_user_pass:  ato
@@ -16,3 +32,10 @@ vm_vnc_port: 5900
 vm_vnc_autoport: yes
 cleanup_tmp: no
 ssh_key: /root/.ssh/id_rsa.pub
+
+# defaults for network provision
+net_name: dev
+net_gw_addr: 192.168.10.1
+net_mask: 255.255.255.0
+net_dhcp_start: 192.168.10.2
+net_dhcp_end: 192.168.10.254

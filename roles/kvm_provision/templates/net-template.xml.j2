@@ -1,0 +1,28 @@
+<!--
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+-->
+<network>
+  <name>{{ net_name }}</name>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='{{ net_name }}br0' stp='on' delay='0'/>
+  <ip address='{{ net_gw_addr }}' netmask='{{ net_mask }}'>
+    <dhcp>
+      <range start='{{ net_dhcp_start }}' end='{{ net_dhcp_end }}'/>
+    </dhcp>
+  </ip>
+</network>

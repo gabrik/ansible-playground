@@ -1,0 +1,39 @@
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+
+
+
+
+---
+
+
+- name: Create network if not exists
+  tags: net_create
+  when: "net_name not in existing_nets.list_nets"
+  block:
+
+    - name: Define the network
+      community.libvirt.virt_net:
+        command: define
+        name: "{{ net_name }}"
+        xml: "{{ lookup('template', 'net-template.xml.j2') }}"
+
+    - name: Ensure VM is started
+      community.libvirt.virt_net:
+        name: "{{ net_name }}"
+        state: active
+      register: net_start_result
+      until: "net_start_result is success"
+      retries: 15
+      delay: 2
+

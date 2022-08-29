@@ -1,22 +1,45 @@
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+
+
+
 ---
 
 - name: Checks if Requirements are in place
   tags:
     - create
     - delete
+    - net_create
+    - net_delete
+
   block:
     - name: Ensure requirements in place
       package:
         name:
           - libguestfs-tools
           - python3-libvirt
+          - python-lxml
         state: present
       become: yes
-
-
 
     - name: Get VMs list
       community.libvirt.virt:
         command: list_vms
       register: existing_vms
+      changed_when: no
+
+    - name: Get Networks list
+      community.libvirt.virt_net:
+        command: list_nets
+      register: existing_nets
       changed_when: no

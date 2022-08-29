@@ -13,19 +13,15 @@
 
 
 
-
-- name: Deploy VM from cloud image
+- name: Create VM network
   hosts: "{{ host | default('hypervisors') }}"
   become: true
   vars:
-    pool_dir: "/var/lib/libvirt/images"
-    vm: ubu22-test
-    vcpus: 2
-    ram_mb: 2048
-    disk_gb: 10
-    cleanup: no
-    net:
-      - default
+      name: dev-net
+      gw_addr: 192.168.10.1
+      mask: 255.255.255.0
+      dhcp_start: 192.168.10.2
+      dhcp_end: 192.168.10.254
   tasks:
    - name: KVM provision role
      include_role:
@@ -33,9 +29,8 @@
      tags:
         - always
      vars:
-        vm_name: "{{ vm }}"
-        vm_vcpus: "{{ vcpus }}"
-        vm_ram_mb: "{{ ram_mb }}"
-        vm_nets: "{{ net }}"
-        vm_disk_gb: "{{ disk_gb }}"
-        cleanup_tmp: "{{ cleanup }}"
+         net_name: "{{ name }}"
+         net_gw_addr: "{{ gw_addr }}"
+         net_mask: "{{ mask }}"
+         net_dhcp_start: "{{ dhcp_start }}"
+         net_dhcp_end: "{{ dhcp_end }}"

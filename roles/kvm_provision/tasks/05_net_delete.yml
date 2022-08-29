@@ -1,0 +1,35 @@
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+
+
+
+---
+
+
+- name: Delete network if exists
+  tags: net_delete
+  when: "net_name in existing_nets.list_nets"
+  block:
+
+    - name: Stop the network
+      community.libvirt.virt_net:
+        command: destroy
+        name: "{{ net_name }}"
+
+    - name: Undefine the network
+      community.libvirt.virt_net:
+        command: undefine
+        name: "{{ net_name }}"
+
+
+

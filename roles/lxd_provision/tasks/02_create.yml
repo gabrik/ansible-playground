@@ -29,10 +29,11 @@
           limits.memory: "{{ container_vram_mb }}MB"
           limits.cpu: "{{ container_vcpus }}"
         devices:
-          # root:
-          #   pool: default
-          #   type: disk
-          #   size: "{{ container_disk_gb }}GB"
+          root:
+            pool: default
+            type: disk
+            size: "{{ container_disk_gb }}GB"
+            path: /
           eth0:
             type: nic
             network: lxdbr0
@@ -49,6 +50,6 @@
           server: "{{ images_server }}"
           protocol: "{{ image_protocol }}"
           alias: "{{ base_image_alias }}"
-        profiles: ["{{ container_name }}-profile","default"]
+        profiles: ["{{ container_name }}-profile"]
         wait_for_container: true
 

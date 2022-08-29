@@ -62,6 +62,11 @@ Creating a Container example:
 ansible-playbook -e host=localhost  manage-container.yml -e disk_gb=5 -e vcpus=16 -e ram_mb=8192 -e name=test --tags create
 ```
 
+Creating a Container attached to multiple networks:
+```
+ansible-playbook -e host=localhost  manage-container.yml -e disk_gb=5 -e vcpus=16 -e ram_mb=8192 -e name=test --extra-vars '{"nets":["lxdbr0","virbr0"]}' --tags create
+```
+
 Deleting a Container:
 ```
 ansible-playbook -e host=localhost  manage-container.yml -e name=test --tags delete

@@ -21,6 +21,25 @@
   # the check cannot be done as plugin is missing listing containers
   # when: "vm_name not in existing_vms.list_vms"
   block:
+
+    - name: generate container configuration (networks)
+      set_fact:
+        interfaces: "{{ interfaces|default({}) | combine( { 'eth'~item.0 : { 'type':'nic', 'network':item.1  } } ) }}"
+      with_indexed_items: "{{ container_nets }}"
+
+    - name: generate container configuration (disk)
+      set_fact:
+        devices:
+          root:
+            pool: default
+            type: disk
+            size: "{{ container_disk_gb }}GB"
+            path: /
+
+    - name: generate container configuration (merging)
+      set_fact:
+        devices: "{{ devices | combine(interfaces) }}"
+
     - name: create the container profile
       community.general.lxd_profile:
         name: "{{ container_name }}-profile"
@@ -28,15 +47,7 @@
         config:
           limits.memory: "{{ container_vram_mb }}MB"
           limits.cpu: "{{ container_vcpus }}"
-        devices:
-          root:
-            pool: default
-            type: disk
-            size: "{{ container_disk_gb }}GB"
-            path: /
-          eth0:
-            type: nic
-            network: lxdbr0
+        devices: "{{ devices }}"
 
 
     - name: create the container
@@ -53,3 +64,7 @@
         profiles: ["{{ container_name }}-profile"]
         wait_for_container: true
 
+
+    # - name: prepare container
+    #   delegate_to: "{{ container_name }}"
+    #   command: "dhclient"

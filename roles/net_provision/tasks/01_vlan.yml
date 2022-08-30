@@ -1,0 +1,36 @@
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+
+---
+
+- name: Create VLAN interface
+  become_user: root
+  become: true
+  command: "ip link add link {{ master }} name {{ master }}.{{ vlan_id }} type vlan id {{ vlan_id }}"
+  when: "master is defined and master != ''"
+  tags:
+    - vlan-create
+
+- include_tasks: 00_ifaces.yml
+  tags: iface-up
+  vars:
+    iface: "{{ master }}.{{ vlan_id }}"
+
+
+- name: Delete VLAN interface
+  become_user: root
+  become: True
+  command: "ip link del {{ master }}.{{ vlan_id }}"
+  when: "master is defined and master != ''"
+  tags:
+    - vlan-delete

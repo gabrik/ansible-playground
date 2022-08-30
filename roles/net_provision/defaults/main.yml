@@ -1,0 +1,6 @@
+---
+
+vlan_id: 10
+vxlan_id: 100
+master: "{{ ansible_default_ipv4.interface }}"
+# defaults file for net_provision

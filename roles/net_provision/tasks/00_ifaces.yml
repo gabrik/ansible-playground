@@ -1,0 +1,47 @@
+#
+# Copyright (c) 2022 Gabriele Baldoni
+#
+# This program and the accompanying materials are made available under the
+# Apache License, Version 2.0
+# which is available at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Contributors:
+#   Gabriele Baldoni, <gabriele@zettascale.tech>
+#
+
+
+---
+
+- name: Set interface up
+  become_user: root
+  become: true
+  command: "ip link set up dev {{ iface }}"
+  when: "iface is defined and iface != ''"
+  tags:
+    - iface-up
+
+- name: Delete interface
+  become_user: root
+  become: true
+  command: "ip link del {{ iface }}"
+  when: "iface is defined and iface != ''"
+  tags:
+    - iface-delete
+
+- name: Set interface master
+  become_user: root
+  become: true
+  command: "ip link set {{ master }} master {{ iface }}"
+  when: "(iface is defined and iface != '') and (master is defined and master != '')"
+  tags:
+    - iface-set-master
+
+- name: Del interface master
+  become_user: root
+  become: true
+  command: "ip link set {{ iface }} nomaster"
+  when: "iface is defined and iface != ''"
+  tags:
+    - iface-del-master

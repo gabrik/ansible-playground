@@ -14,26 +14,47 @@
         ansible_local_user: "{{ lookup('pipe', 'id -un') | d(lookup('pipe', 'whoami'), True) | d(lookup('env', 'USER'), True) |  d(lookup('env', 'user'), True) |  d(lookup('env', 'LOGNAME'), True) }}"
       failed_when: ansible_local_user == ''
 
-    - name: Update and upgrade apt packages
-      tags:
-        - always
-      become_user: root
-      become: true
+    - name: Update Package Cache (apt/Debian)
+      tags: always
       apt:
         update_cache: yes
+      changed_when: false
+      when: ansible_os_family == 'Debian'
 
-    - name: Install prerequisites
+    - name: Update Package Cache (dnf/RedHat)
+      tags: always
+      dnf:
+        update_cache: yes
+      changed_when: false
+      when:  ansible_os_family == 'RedHat'
+
+    - name: Install prerequisites (apt/Debian)
       tags:
         - always
       become_user: root
       become: true
-      apt:
-        pkg:
+      package:
+        name:
           - build-essential
           - clang
           - libclang-dev
           - git
           - apt-utils
+        state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Install prerequisites (dnf/RedHat)
+      tags:
+        - always
+      become_user: root
+      become: true
+      package:
+        name:
+          - git
+          - curl
+          - gcc
+        state: present
+      when: ansible_os_family == 'RedHat'
 
     - name: check if cargo is installed
       tags:
@@ -58,6 +79,7 @@
         executable: /bin/bash
       register: cargo_deb_exists
       ignore_errors: yes
+      when: ansible_os_family == 'Debian'
 
     - name: Download rust installer
       tags:
@@ -91,6 +113,7 @@
         cargo install cargo-deb
       args:
         executable: /bin/bash
+      when: ansible_os_family == 'Debian'
 
     - name: checkout zenoh-flow
       tags:
@@ -167,6 +190,7 @@
         cargo deb -p zfctl
       args:
         executable: /bin/bash
+      when: ansible_os_family == 'Debian'
 
 
     - name: find debs
@@ -176,15 +200,24 @@
         paths: /home/{{ ansible_local_user }}/zenoh-flow/target/debian/
         patterns: "*.deb"
       register: packages
+      when: ansible_os_family == 'Debian'
 
-    - name: install zenoh-flow packages
+    - name: Create package list (apt/Debian)
+      tags:
+        - install
+      set_fact:
+        deb_packages: "{{dst_list | default([])}} + [ '{{ item.path }}' ]"
+      with_items: "{{ packages.files }}"
+      when: ansible_os_family == 'Debian'
+
+    - name: install zenoh packages (apt/Debian)
       tags:
         - install
       become_user: root
       become: true
       apt:
-        deb: "{{ item.path }}"
-      with_items: "{{ packages.files }}"
+        deb: "{{ deb_packages }}"
+      when: ansible_os_family == 'Debian'
 
     - name: zenoh-flow clean up
       tags:

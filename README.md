@@ -10,12 +10,14 @@ with Ansible.
 pip3 install libvirt-python lxml
 ansible-galaxy collection install community.libvirt
 ansible-galaxy collection install community.general
+ansible-galaxy install nvidia.nvidia_driver
 ```
 
 ## Roles
 
 - kvm_provison: this roles allows to spawn (and destroy) VMs and virtual networks on libvirt
 - lxd_provison: this roles allows to spawn (and destroy) containers with LXD
+- net_provison: this roles allows to create and destroy virtual networks and interfaces (WIP)
 
 ## Playbooks
 
@@ -102,4 +104,15 @@ ansible-playbook -i vm-inventory.yml -e host=zf -e user=ato playbook-zenoh-flow.
 Example build and install:
 ```
 ansible-playbook -i vm-inventory.yml -e host=zf -e user=ato playbook-zenoh-flow.yml -t install
+```
+
+
+### nvidia-driver.yml
+
+This playbook allow to install the NVIDIA drivers.
+Without the `host` parameter will run on `localhost`
+
+Example:
+```
+ansible-playbook -i vm-inventory.yml -e host=gpuvm nvidia-driver.yml
 ```

@@ -20,6 +20,25 @@
     <type arch='x86_64' machine='q35'>hvm</type>
     <boot dev='hd'/>
   </os>
+  <features>
+      <acpi />
+      <apic />
+      <hyperv>
+         <relaxed state="on" />
+         <vapic state="on" />
+         <spinlocks state="on" retries="8191" />
+         <vpindex state="on" />
+         <synic state="on" />
+         <reset state="on" />
+         <vendor_id state="on" value="AuthenticATO" />
+         <frequencies state="on" />
+      </hyperv>
+      <kvm>
+         <hidden state="on" />
+      </kvm>
+      <vmport state="off" />
+  </features>
+
   <cpu mode='host-model' check='none'/>
   <devices>
     <emulator>/usr/bin/qemu-system-x86_64</emulator>
@@ -47,6 +66,19 @@
       <target type='virtio' name='org.qemu.guest_agent.0'/>
       <address type='virtio-serial' controller='0' bus='0' port='1'/>
     </channel>
+
+    <!-- This is for PCIe passthrough -->
+    {% for pcie_dev in devices %}
+     <hostdev mode="subsystem" type="pci" managed="yes">
+      <source>
+        <address domain="0x0000" bus="0x{{ pcie_dev.bus_id }}" slot="0x{{ pcie_dev.slot }}" function="0x{{ pcie_dev.function }}"/>
+      </source>
+      <!--<address type="pci" domain="0x0000" bus="0x04" slot="0x00" function="0x0"/> -->
+    </hostdev>
+    {% endfor %}
+
+
+
     <!-- <input type='tablet' bus='usb'>
       <address type='usb' bus='0' port='1'/>
     </input>
@@ -67,9 +99,17 @@
       <target type='serial' port='0'/>
       <alias name='serial0'/>
     </console>
-    <!-- <memballoon model='virtio'>
+    <graphics type='spice' autoport='yes'>
+      <listen type='address'/>
+      <image compression='off'/>
+    </graphics>
+    <video>
+      <model type='qxl' ram='65536' vram='65536' vgamem='16384' heads='1' primary='yes'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x0'/>
+    </video>
+    <memballoon model='virtio'>
       <address type='pci' domain='0x0000' bus='0x06' slot='0x00' function='0x0'/>
-    </memballoon> -->
+    </memballoon>
     <rng model='virtio'>
       <backend model='random'>/dev/urandom</backend>
       <address type='pci' domain='0x0000' bus='0x07' slot='0x00' function='0x0'/>

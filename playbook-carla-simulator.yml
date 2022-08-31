@@ -1,0 +1,133 @@
+---
+- name: Install CARLA simulator
+  hosts: "{{ host | default('localhost') }}"
+  become_user: "{{ user | default('ato') }}"
+  become: true
+  tasks:
+    - name: current local user
+      run_once: True
+      set_fact:
+        ansible_local_user: "{{ lookup('pipe', 'id -un') | d(lookup('pipe', 'whoami'), True) | d(lookup('env', 'USER'), True) |  d(lookup('env', 'user'), True) |  d(lookup('env', 'LOGNAME'), True) }}"
+      failed_when: ansible_local_user == ''
+
+    - name: Update Package Cache (apt/Debian)
+      become_user: root
+      become: true
+      tags: always
+      apt:
+        update_cache: yes
+      changed_when: false
+      when: ansible_os_family == 'Debian'
+
+    - name: Install prerequisites (apt/Debian)
+      become_user: root
+      become: true
+      apt:
+        pkg:
+          - sudo
+          - wget
+          - libsdl2-2.0-0
+          - xserver-xorg
+          - libvulkan1
+          - libomp5
+          - apt-utils
+          - curl
+          - openssh-server
+          - tzdata
+        state: present
+        install_recommends: no
+      when: ansible_os_family == 'Debian'
+
+    # - name: Get Vulkan version
+    #   shell: |
+    #     "source "
+    #     "dpkg -s libvulkan1 | grep -oP 'Version: [0-9|.]+' | grep -oP '[0-9|.]'"
+    #   args:
+    #     executable: /bin/bash
+    #   register: vulkan_version
+
+
+    # - name: Save Vulkan config
+    #   become_user: root
+    #   become: true
+    #   copy:
+    #     content: "{{ lookup('template', 'nvidia_icd.json.j2') }}"
+    #     dest: /etc/vulkan/icd.d/nvidia_icd.json
+    #     mode: 0644
+
+    - name: Generate SSH keys
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME
+        ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y 2>&1 >/dev/null
+      args:
+        executable: /bin/bash
+      when: ansible_os_family == 'Debian'
+
+    - name: Create the carla directory
+      ansible.builtin.file:
+        path: "/home/{{ ansible_local_user }}/carla"
+        state: directory
+        mode: '0755'
+
+    - name: Define CARLA path
+      set_fact:
+        carla_home: "/home/{{ ansible_local_user }}/carla"
+
+    - name: Download CARLA
+      get_url:
+        url: https://carla-releases.s3.eu-west-3.amazonaws.com/Linux/CARLA_0.9.10.1.tar.gz
+        dest: /tmp/CARLA_0.9.10.1.tar.gz
+        mode: '0755'
+        force: 'yes'
+
+    - name: Unarchive CARLA
+      ansible.builtin.unarchive:
+        src: /tmp/CARLA_0.9.10.1.tar.gz
+        dest: "{{ carla_home }}"
+        remote_src: yes
+
+    - name: Copy simulator start script
+      copy:
+        src: ./run_simulator.sh
+        dest: "{{ carla_home }}"
+        mode: '0755'
+
+    - name: Ensure temporary file is deleted
+      file:
+        path: /tmp/CARLA_0.9.10.1.tar.gz
+        state: absent
+
+    - name: Update bashrc
+      lineinfile:
+        path: "/home/{{ ansible_local_user }}/.bashrc"
+        line: "export CARLA_HOME={{ carla_home }}"
+
+    - name: Update bash_profile
+      lineinfile:
+        path: "/home/{{ ansible_local_user }}/.bash_profile"
+        line: 'if [ -f ~/.bashrc ]; then . ~/.bashrc ; fi'
+      ignore_errors: yes
+
+    - name: Update profile
+      lineinfile:
+        path: "/home/{{ ansible_local_user }}/.profile"
+        line: 'if [ -f ~/.bashrc ]; then . ~/.bashrc ; fi'
+      ignore_errors: yes
+
+    - name: Update ssh config
+      become_user: root
+      become: true
+      replace:
+        path: /etc/ssh/sshd_config
+        regexp: '(\s+)#X11UseLocalhost yes?$'
+        replace: '\1X11UseLocalhost no'
+        backup: yes
+
+    - name: Restart SSH
+      become_user: root
+      become: true
+      service:
+        name: ssh
+        state: restarted

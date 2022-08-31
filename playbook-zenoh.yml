@@ -14,6 +14,8 @@
       failed_when: ansible_local_user == ''
 
     - name: Update Package Cache (apt/Debian)
+      become_user: root
+      become: true
       tags: always
       apt:
         update_cache: yes
@@ -21,6 +23,8 @@
       when: ansible_os_family == 'Debian'
 
     - name: Update Package Cache (dnf/RedHat)
+      become_user: root
+      become: true
       tags: always
       dnf:
         update_cache: yes

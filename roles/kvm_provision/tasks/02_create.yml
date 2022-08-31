@@ -41,6 +41,10 @@
       register: copy_results
 
 
+    - name: Add SSH key
+      set_fact:
+        user_ssh_key: "{{ lookup('file', 'id_rsa.pub') }}"
+
     - name: Copy the vendor configuration
       copy:
         content: "{{ lookup('template', 'vendor-data.yml.j2') }}"

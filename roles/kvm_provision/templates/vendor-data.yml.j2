@@ -10,6 +10,8 @@ users:
     groups: sudo
     home: /home/{{ vm_user }}
     shell: /bin/bash
+    ssh-authorized-keys:
+      - {{ user_ssh_key }}
 chpasswd:
   list: |
     {{ vm_user }}:{{ vm_user_pass }}

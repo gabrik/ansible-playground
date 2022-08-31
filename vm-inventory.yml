@@ -1,5 +1,5 @@
 ---
 plugin: community.libvirt.libvirt
-uri: 'qemu+ssh://ato@luke/system'
+uri: 'qemu+ssh://ato@majinbu/system'
 ansible_connection: community.libvirt.libvirt
-ansible_libvirt_uri: 'qemu+ssh://ato@luke/system'
+ansible_libvirt_uri: 'qemu+ssh://ato@majinbu/system'

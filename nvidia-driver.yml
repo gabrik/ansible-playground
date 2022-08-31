@@ -1,4 +1,5 @@
 ---
 - hosts: "{{ host | default('localhost') }}"
+  become: true
   roles:
     - nvidia.nvidia_driver

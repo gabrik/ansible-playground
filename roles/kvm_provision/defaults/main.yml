@@ -40,6 +40,12 @@ devices: []
   # - bus_id: c6
   #   slot: 00
   #   function: 1
+  # - bus_id: 46
+  #   slot: 00
+  #   function: 0
+  # - bus_id: 46
+  #   slot: 00
+  #   function: 1
 
 # defaults for network provision
 net_name: dev

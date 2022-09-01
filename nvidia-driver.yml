@@ -3,3 +3,6 @@
   become: true
   roles:
     - nvidia.nvidia_driver
+  vars:
+    - nvidia_driver_ubuntu_install_from_cuda_repo: yes
+    - nvidia_driver_persistence_mode_on: no

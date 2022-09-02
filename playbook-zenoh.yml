@@ -3,6 +3,8 @@
   hosts: "{{ host | default('localhost') }}"
   become_user: "{{ user | default('ato') }}"
   become: true
+  vars:
+    branch: "master"
   tasks:
 
     - name: current local user
@@ -146,6 +148,7 @@
         - always
       git:
         repo: https://github.com/eclipse-zenoh/zenoh
+        version: "{{ branch }}"
         dest: /home/{{ ansible_local_user }}/zenoh
 
     - name: Check zenoh

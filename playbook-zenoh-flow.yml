@@ -3,6 +3,8 @@
   hosts: "{{ host | default('localhost') }}"
   become_user: "{{ user | default('ato') }}"
   become: true
+  vars:
+    branch: "dev/v0.4.0"
   tasks:
 
 
@@ -120,7 +122,7 @@
         - always
       git:
         repo: https://github.com/ZettaScaleLabs/zenoh-flow
-        version: dev/v0.4.0
+        version: "{{ branch }}"
         dest: /home/{{ ansible_local_user }}/zenoh-flow
 
     - name: Check zenoh-flow

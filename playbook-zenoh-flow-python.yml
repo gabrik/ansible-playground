@@ -1,0 +1,158 @@
+---
+- name: Build and install zenoh-flow-python
+  hosts: "{{ host | default('localhost') }}"
+  become_user: "{{ user | default('ato') }}"
+  become: true
+  vars:
+    branch: "wip/0.4"
+  tasks:
+    - name: current local user
+      run_once: True
+      set_fact:
+        ansible_local_user: "{{ lookup('pipe', 'id -un') | d(lookup('pipe', 'whoami'), True) | d(lookup('env', 'USER'), True) |  d(lookup('env', 'user'), True) |  d(lookup('env', 'LOGNAME'), True) }}"
+      failed_when: ansible_local_user == ''
+
+    - name: Update Package Cache (apt/Debian)
+      become_user: root
+      become: true
+      tags: always
+      apt:
+        update_cache: yes
+      changed_when: false
+      when: ansible_os_family == 'Debian'
+
+    - name: Install prerequisites (apt/Debian)
+      become_user: root
+      become: true
+      apt:
+        pkg:
+          - python3
+          - build-essential
+          - curl
+        state: present
+        install_recommends: no
+      when: ansible_os_family == 'Debian'
+
+    - name: check if cargo is installed
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        command -v cargo
+      args:
+        executable: /bin/bash
+      register: cargo_exists
+      ignore_errors: yes
+
+    - name: check if maturin is installed
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        command -v maturin
+      args:
+        executable: /bin/bash
+      register: maturin_exists
+      ignore_errors: yes
+      when: ansible_os_family == 'Debian'
+
+    - name: Download rust installer
+      tags:
+        - always
+      when: cargo_exists is failed
+      get_url:
+        url: https://sh.rustup.rs
+        dest: /tmp/rustup.sh
+        mode: '0755'
+        force: 'yes'
+
+
+    - name: Install rust toolchain
+      tags:
+        - always
+      when: cargo_exists is failed
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        /tmp/rustup.sh -y
+      args:
+        executable: /bin/bash
+
+    - name: Install maturin
+      tags:
+        - always
+      when: maturin_exists is failed
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cargo install maturin
+      args:
+        executable: /bin/bash
+
+    - name: Download get-pip
+      tags:
+        - always
+      get_url:
+        url: https://bootstrap.pypa.io/get-pip.py
+        dest: /tmp/get-pip.sh
+        mode: '0644'
+        force: 'yes'
+
+    - name: Install pip
+      become_user: root
+      become: true
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        python3 /tmp/get-pip.sh
+      args:
+        executable: /bin/bash
+
+    - name: Install virtualevn
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        pip3 install virtualenv
+      args:
+        executable: /bin/bash
+
+    - name: checkout zenoh-flow
+      tags:
+        - always
+      git:
+        repo: https://github.com/ZettaScaleLabs/zenoh-flow-python
+        version: "{{ branch }}"
+        dest: /home/{{ ansible_local_user }}/zenoh-flow-python
+
+    - name: Build zenoh-flow wheel
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh-flow-python
+        python3 -m virtualenv venv
+        source venv/bin/activate
+        cd zenoh-flow-python
+        pip3 install requirements-dev.txt
+        maturin build --release
+      args:
+        executable: /bin/bash
+
+
+    - name: Install zenoh-flow python
+      tags:
+        - always
+      shell: |
+        "export HOME=/home/{{ ansible_local_user }}/"
+        . $HOME/.profile
+        cd $HOME/zenoh-flow-python
+        pip3 install ./target/wheel/*.whl
+      args:
+        executable: /bin/bash
